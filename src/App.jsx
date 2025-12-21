@@ -404,9 +404,14 @@ const App = () => {
                 onClick={async () => {
                   setIsAnalyzing(true);
                   try {
-                    const analysis = await analyzeThemes(contributions);
-                    setAiAnalysis(analysis);
-                    setView('ai-analysis');
+                    const result = await analyzeThemes(contributions);
+                    console.log('Résultat analyse IA:', result);
+                    if (result.error) {
+                      alert(result.error);
+                    } else {
+                      setAiAnalysis(result.themes || []);
+                      setView('ai-analysis');
+                    }
                   } catch (error) {
                     console.error('Erreur analyse IA:', error);
                     alert('Erreur lors de l\'analyse IA. Vérifiez la console.');
@@ -524,14 +529,14 @@ const App = () => {
                     >
                       <div className="flex justify-between items-center mb-3">
                         <h3 className="text-xl font-bold text-purple-900 capitalize">
-                          {theme.theme}
+                          {theme.name}
                         </h3>
                         <div className="flex items-center gap-3">
                           <span className="bg-purple-600 text-white px-4 py-1 rounded-full font-bold">
                             {theme.count} contribution{theme.count > 1 ? 's' : ''}
                           </span>
                           <span className="text-sm text-gray-600">
-                            {Math.round(theme.confidence * 100)}% confiance
+                            {Math.round(theme.avgScore * 100)}% confiance
                           </span>
                         </div>
                       </div>
