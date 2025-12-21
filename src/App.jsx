@@ -12,6 +12,11 @@ const App = () => {
   const [draggingId, setDraggingId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [filterCategory, setFilterCategory] = useState('all'); // Filtre actif
+  const [presentationMode, setPresentationMode] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
   const categories = [
     { name: 'Un rêve', color: '#87CEEB', emoji: '💭' },
@@ -185,6 +190,33 @@ const App = () => {
       await window.storage.set(`contributions-${sessionId}`, JSON.stringify(contributions));
       setDraggingId(null);
     }
+    setIsPanning(false);
+  };
+
+  const handleZoom = (delta) => {
+    setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
+  };
+
+  const handlePanStart = (e) => {
+    if (e.button === 1 || (e.button === 0 && e.ctrlKey)) { // Molette ou Ctrl+Clic
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  };
+
+  const handlePanMove = (e) => {
+    if (isPanning) {
+      setPan({ 
+        x: e.clientX - panStart.x, 
+        y: e.clientY - panStart.y 
+      });
+    }
+  };
+
+  const resetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   };
 
   const generateQRCodeUrl = () => {
@@ -360,6 +392,12 @@ const App = () => {
             </div>
             <div className="flex gap-2">
               <button
+                onClick={() => setPresentationMode(true)}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Mode Présentation
+              </button>
+              <button
                 onClick={() => setView('qrcode')}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
@@ -444,45 +482,186 @@ const App = () => {
         </div>
       ) : null}
 
+      {/* Contrôles Zoom/Pan */}
+      <div className="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-3 flex gap-2 z-40">
+        <button
+          onClick={() => handleZoom(0.2)}
+          className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 font-bold"
+          title="Zoom avant"
+        >
+          +
+        </button>
+        <button
+          onClick={() => handleZoom(-0.2)}
+          className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 font-bold"
+          title="Zoom arrière"
+        >
+          −
+        </button>
+        <button
+          onClick={resetView}
+          className="bg-gray-600 text-white px-3 py-2 rounded hover:bg-gray-700"
+          title="Réinitialiser la vue"
+        >
+          ⟲
+        </button>
+        <span className="text-sm text-gray-600 self-center px-2">
+          {Math.round(zoom * 100)}%
+        </span>
+      </div>
+
       <div 
-        className="relative h-[calc(100vh-88px)] overflow-hidden contributions-container"
-        onMouseMove={handleMouseMove}
+        className="relative h-[calc(100vh-88px)] overflow-hidden contributions-container cursor-grab active:cursor-grabbing"
+        onMouseMove={(e) => {
+          handleMouseMove(e);
+          handlePanMove(e);
+        }}
+        onMouseDown={handlePanStart}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={(e) => {
+          e.preventDefault();
+          handleZoom(e.deltaY > 0 ? -0.1 : 0.1);
+        }}
       >
-        {filteredContributions.map((contrib) => (
-          <div
-            key={contrib.id}
-            className="absolute p-4 shadow-lg rounded-lg cursor-move hover:shadow-xl transition-shadow"
-            style={{
-              backgroundColor: contrib.color,
-              left: `${contrib.x}%`,
-              top: `${contrib.y}%`,
-              transform: `rotate(${contrib.rotation}deg)`,
-              minWidth: '150px',
-              maxWidth: '250px',
-              userSelect: 'none'
-            }}
-            onMouseDown={(e) => handleMouseDown(e, contrib)}
-          >
-            <p className="text-gray-800 font-medium break-words pointer-events-none">{contrib.text}</p>
-            {contrib.category && (
-              <p className="text-xs text-gray-600 mt-2 italic pointer-events-none">{contrib.category}</p>
-            )}
-          </div>
-        ))}
-        
-        {filteredContributions.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-gray-400 text-xl">
-              {filterCategory === 'all' 
-                ? 'En attente de contributions...' 
-                : `Aucune contribution dans la catégorie "${filterCategory}"`
-              }
-            </p>
-          </div>
-        )}
+        <div
+          style={{
+            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+            transformOrigin: '0 0',
+            width: '100%',
+            height: '100%',
+            transition: isPanning || draggingId ? 'none' : 'transform 0.2s ease-out'
+          }}
+        >
+          {filteredContributions.map((contrib) => (
+            <div
+              key={contrib.id}
+              className="absolute p-4 shadow-lg rounded-lg cursor-move hover:shadow-xl transition-all duration-300 animate-fadeIn"
+              style={{
+                backgroundColor: contrib.color,
+                left: `${contrib.x}%`,
+                top: `${contrib.y}%`,
+                transform: `rotate(${contrib.rotation}deg)`,
+                minWidth: '150px',
+                maxWidth: '250px',
+                userSelect: 'none',
+                animation: 'fadeIn 0.5s ease-out'
+              }}
+              onMouseDown={(e) => {
+                if (!e.ctrlKey && e.button === 0) {
+                  handleMouseDown(e, contrib);
+                }
+              }}
+            >
+              <p className="text-gray-800 font-medium break-words pointer-events-none">{contrib.text}</p>
+              {contrib.category && (
+                <p className="text-xs text-gray-600 mt-2 italic pointer-events-none">{contrib.category}</p>
+              )}
+            </div>
+          ))}
+          
+          {filteredContributions.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="text-gray-400 text-xl">
+                {filterCategory === 'all' 
+                  ? 'En attente de contributions...' 
+                  : `Aucune contribution dans la catégorie "${filterCategory}"`
+                }
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Mode Présentation */}
+      {presentationMode && (
+        <div className="fixed inset-0 bg-gray-900 z-50">
+          <div className="h-full w-full relative">
+            {/* Barre supérieure minimaliste */}
+            <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 flex justify-between items-center z-10">
+              <h1 className="text-2xl font-bold">{question}</h1>
+              <button
+                onClick={() => setPresentationMode(false)}
+                className="bg-white text-black px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+              >
+                ✕ Quitter
+              </button>
+            </div>
+
+            {/* Tableau plein écran avec zoom/pan */}
+            <div 
+              className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing"
+              onMouseMove={(e) => {
+                handleMouseMove(e);
+                handlePanMove(e);
+              }}
+              onMouseDown={handlePanStart}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={(e) => {
+                e.preventDefault();
+                handleZoom(e.deltaY > 0 ? -0.1 : 0.1);
+              }}
+            >
+              <div
+                style={{
+                  transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                  transformOrigin: '0 0',
+                  width: '100%',
+                  height: '100%',
+                  transition: isPanning || draggingId ? 'none' : 'transform 0.2s ease-out'
+                }}
+              >
+                {filteredContributions.map((contrib) => (
+                  <div
+                    key={contrib.id}
+                    className="absolute p-4 shadow-2xl rounded-lg animate-fadeIn"
+                    style={{
+                      backgroundColor: contrib.color,
+                      left: `${contrib.x}%`,
+                      top: `${contrib.y}%`,
+                      transform: `rotate(${contrib.rotation}deg)`,
+                      minWidth: '150px',
+                      maxWidth: '250px',
+                      animation: 'fadeIn 0.5s ease-out'
+                    }}
+                  >
+                    <p className="text-gray-800 font-medium break-words">{contrib.text}</p>
+                    {contrib.category && (
+                      <p className="text-xs text-gray-600 mt-2 italic">{contrib.category}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Contrôles zoom minimalistes */}
+            <div className="fixed bottom-6 right-6 bg-black bg-opacity-70 text-white rounded-lg p-3 flex gap-2">
+              <button
+                onClick={() => handleZoom(0.2)}
+                className="px-4 py-2 hover:bg-white hover:text-black rounded transition-colors font-bold"
+              >
+                +
+              </button>
+              <button
+                onClick={() => handleZoom(-0.2)}
+                className="px-4 py-2 hover:bg-white hover:text-black rounded transition-colors font-bold"
+              >
+                −
+              </button>
+              <button
+                onClick={resetView}
+                className="px-4 py-2 hover:bg-white hover:text-black rounded transition-colors"
+              >
+                ⟲
+              </button>
+              <span className="self-center px-2">
+                {Math.round(zoom * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
