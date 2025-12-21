@@ -7,7 +7,14 @@ const App = () => {
   const [sessionId, setSessionId] = useState('');
   const [contributions, setContributions] = useState([]);
   const [participantText, setParticipantText] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const categories = [
+    { name: 'Un rêve', color: '#87CEEB', emoji: '💭' },
+    { name: 'Un besoin du quotidien', color: '#90EE90', emoji: '🌱' },
+    { name: 'Mes inquiétudes', color: '#FF6B6B', emoji: '⚠️' }
+  ];
 
   const colors = ['#FFE5B4', '#FFB6C1', '#B4E7FF', '#D4FFB4', '#FFD4E5', '#E5D4FF', '#FFFACD'];
 
@@ -59,19 +66,13 @@ const App = () => {
     
     await window.storage.set('current-session', JSON.stringify(session));
     await window.storage.set(`contributions-${newSessionId}`, JSON.stringify([]));
-    
-    setSessionId(newSessionId);
-    setContributions([]);
-    setView('board');
-  };
-
-  const addContribution = async () => {
-    if (!participantText.trim()) return;
+     || !selectedCategory) return;
 
     const newContribution = {
       id: Date.now(),
       text: participantText,
-      color: colors[Math.floor(Math.random() * colors.length)],
+      color: selectedCategory.color,
+      category: selectedCategory.name,
       x: Math.random() * 70 + 5,
       y: Math.random() * 70 + 5,
       rotation: Math.random() * 10 - 5
@@ -81,6 +82,11 @@ const App = () => {
     
     // Stocker et synchroniser
     await window.storage.set(`contributions-${sessionId}`, JSON.stringify(updated));
+    
+    // Mettre à jour l'état local immédiatement
+    setContributions(updated);
+    setParticipantText('');
+    setSelectedCategory(null
     
     // Mettre à jour l'état local immédiatement
     setContributions(updated);
@@ -201,18 +207,52 @@ const App = () => {
           </div>
           
           <div className="mb-4">
-            <textarea
-              value={participantText}
-              onChange={(e) => setParticipantText(e.target.value)}
-              placeholder="Votre contribution..."
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none resize-none"
-              rows="4"
-            />
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Choisissez une catégorie :
+            </label>
+            <div className="grid grid-cols-1 gap-2 mb-4">
+              {categories.map((category) => (
+                <button
+                  key={category.name}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                    selectedCategory?.name === category.name
+                      ? 'border-teal-600 bg-teal-50 shadow-md'
+                      : 'border-gray-300 hover:border-teal-400'
+                  }`}
+                  style={{
+                    backgroundColor: selectedCategory?.name === category.name ? category.color + '30' : 'white'
+                  }}
+                >
+                  <span className="text-2xl">{category.emoji}</span>
+                  <div className="flex-1 text-left">
+                    <div className="font-semibold text-gray-800">{category.name}</div>
+                  </div>
+                  <div 
+                    className="w-6 h-6 rounded-full border-2 border-gray-300"
+                    style={{ backgroundColor: category.color }}
+                  ></div>
+                </button>
+              ))}
+            </div>
           </div>
+          
+          {selectedCategory && (
+            <div className="mb-4">
+              <textarea
+                value={participantText}
+                onChange={(e) => setParticipantText(e.target.value)}
+                placeholder="Votre contribution..."
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none resize-none"
+                rows="4"
+                style={{ borderColor: selectedCategory.color }}
+              />
+            </div>
+          )}
           
           <button
             onClick={addContribution}
-            disabled={!participantText.trim()}
+            disabled={!participantText.trim() || !selectedCategory}
             className="w-full bg-teal-600 text-white py-3 rounded-lg font-semibold hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             <Plus className="w-5 h-5" />
