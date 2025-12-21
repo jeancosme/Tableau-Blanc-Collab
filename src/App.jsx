@@ -77,13 +77,42 @@ const App = () => {
   const addContribution = async () => {
     if (!participantText.trim() || !selectedCategory) return;
 
+    // Trouver une position libre sans chevauchement
+    const findFreePosition = () => {
+      const minDistance = 20; // Distance minimale entre les post-its (en %)
+      let attempts = 0;
+      const maxAttempts = 50;
+
+      while (attempts < maxAttempts) {
+        const x = Math.random() * 70 + 5;
+        const y = Math.random() * 70 + 5;
+
+        // Vérifier si cette position est libre
+        const tooClose = contributions.some(contrib => {
+          const dx = Math.abs(contrib.x - x);
+          const dy = Math.abs(contrib.y - y);
+          return dx < minDistance && dy < minDistance;
+        });
+
+        if (!tooClose) {
+          return { x, y };
+        }
+        attempts++;
+      }
+
+      // Si on ne trouve pas de position libre après 50 essais, placer quand même
+      return { x: Math.random() * 70 + 5, y: Math.random() * 70 + 5 };
+    };
+
+    const position = findFreePosition();
+
     const newContribution = {
       id: Date.now(),
       text: participantText,
       color: selectedCategory.color,
       category: selectedCategory.name,
-      x: Math.random() * 70 + 5,
-      y: Math.random() * 70 + 5,
+      x: position.x,
+      y: position.y,
       rotation: Math.random() * 10 - 5
     };
 
