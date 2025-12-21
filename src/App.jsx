@@ -33,9 +33,18 @@ const App = () => {
 
   const loadContributions = async (sid) => {
     try {
-      const result = await window.storage.get(`contributions-${sid}`, true);
+      const result = await window.storage.get(`contributions-${sid}`);
       if (result) {
         setContributions(JSON.parse(result.value));
+      }
+      
+      // Écouter les changements en temps réel (si Firebase)
+      if (window.storage.listen) {
+        window.storage.listen(`contributions-${sid}`, (data) => {
+          if (data) {
+            setContributions(JSON.parse(data.value));
+          }
+        });
       }
     } catch (error) {
       setContributions([]);
@@ -49,7 +58,7 @@ const App = () => {
     const session = { id: newSessionId, question };
     
     await window.storage.set('current-session', JSON.stringify(session));
-    await window.storage.set(`contributions-${newSessionId}`, JSON.stringify([]), true);
+    await window.storage.set(`contributions-${newSessionId}`, JSON.stringify([]));
     
     setSessionId(newSessionId);
     setContributions([]);
@@ -70,8 +79,8 @@ const App = () => {
 
     const updated = [...contributions, newContribution];
     
-    // Stocker localement
-    await window.storage.set(`contributions-${sessionId}`, JSON.stringify(updated), true);
+    // Stocker et synchroniser
+    await window.storage.set(`contributions-${sessionId}`, JSON.stringify(updated));
     
     // Mettre à jour l'état local immédiatement
     setContributions(updated);
@@ -89,7 +98,7 @@ const App = () => {
 
   const clearBoard = async () => {
     if (confirm('Voulez-vous vraiment effacer toutes les contributions ?')) {
-      await window.storage.set(`contributions-${sessionId}`, JSON.stringify([]), true);
+      await window.storage.set(`contributions-${sessionId}`, JSON.stringify([]));
       setContributions([]);
     }
   };
