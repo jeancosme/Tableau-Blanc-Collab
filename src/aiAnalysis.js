@@ -12,25 +12,29 @@ export async function analyzeThemes(contributions) {
     // Extraire tous les textes
     const texts = contributions.map(c => c.text).join('. ');
     
-    // Liste de thèmes potentiels à détecter
+    // Liste de thèmes potentiels à détecter (adaptés aux rêves, besoins et inquiétudes)
     const candidateLabels = [
       'environnement',
-      'énergie', 
+      'climat',
       'pollution',
+      'énergie', 
       'santé',
       'éducation',
+      'avenir',
       'travail',
+      'emploi',
       'famille',
       'logement',
-      'transport',
-      'alimentation',
       'sécurité',
-      'loisirs',
+      'violence',
       'technologie',
       'économie',
+      'argent',
       'social',
-      'culture',
-      'sport',
+      'relations',
+      'justice',
+      'liberté',
+      'paix',
       'politique'
     ];
 
