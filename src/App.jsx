@@ -11,6 +11,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [draggingId, setDraggingId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [filterCategory, setFilterCategory] = useState('all'); // Filtre actif
 
   const categories = [
     { name: 'Un rêve', color: '#87CEEB', emoji: '💭' },
@@ -335,42 +336,92 @@ const App = () => {
   }
 
   // Vue Tableau (Admin)
+  const filteredContributions = filterCategory === 'all' 
+    ? contributions 
+    : contributions.filter(c => c.category === filterCategory);
+
+  const getCategoryCount = (categoryName) => {
+    return contributions.filter(c => c.category === categoryName).length;
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white shadow-md p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">{question}</h1>
-            <p className="text-sm text-gray-600">{contributions.length} contribution{contributions.length > 1 ? 's' : ''}</p>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">{question}</h1>
+              <p className="text-sm text-gray-600">
+                {filterCategory === 'all' 
+                  ? `${contributions.length} contribution${contributions.length > 1 ? 's' : ''} au total`
+                  : `${filteredContributions.length} contribution${filteredContributions.length > 1 ? 's' : ''} affichée${filteredContributions.length > 1 ? 's' : ''}`
+                }
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setView('qrcode')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <QrCode className="w-5 h-5" />
+                QR Code
+              </button>
+              <button
+                onClick={refreshBoard}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className="w-5 h-5" />
+                Actualiser
+              </button>
+              <button
+                onClick={clearBoard}
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="w-5 h-5" />
+                Effacer
+              </button>
+              <button
+                onClick={resetSession}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Nouvelle session
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
+
+          {/* Filtres par catégorie */}
+          <div className="flex gap-2 items-center">
+            <span className="text-sm font-semibold text-gray-700">Filtrer :</span>
             <button
-              onClick={() => setView('qrcode')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              onClick={() => setFilterCategory('all')}
+              className={`px-4 py-2 rounded-lg transition-all ${
+                filterCategory === 'all'
+                  ? 'bg-gray-800 text-white shadow-md'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
             >
-              <QrCode className="w-5 h-5" />
-              QR Code
+              Tout ({contributions.length})
             </button>
-            <button
-              onClick={refreshBoard}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-            >
-              <RefreshCw className="w-5 h-5" />
-              Actualiser
-            </button>
-            <button
-              onClick={clearBoard}
-              className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
-            >
-              <Trash2 className="w-5 h-5" />
-              Effacer
-            </button>
-            <button
-              onClick={resetSession}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Nouvelle session
-            </button>
+            {categories.map((category) => (
+              <button
+                key={category.name}
+                onClick={() => setFilterCategory(category.name)}
+                className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
+                  filterCategory === category.name
+                    ? 'shadow-md text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                style={{
+                  backgroundColor: filterCategory === category.name ? category.color : undefined,
+                  borderWidth: filterCategory === category.name ? '2px' : '0',
+                  borderColor: filterCategory === category.name ? 'rgba(0,0,0,0.2)' : undefined
+                }}
+              >
+                <span>{category.emoji}</span>
+                <span>{category.name}</span>
+                <span className="font-bold">({getCategoryCount(category.name)})</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -399,7 +450,7 @@ const App = () => {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {contributions.map((contrib) => (
+        {filteredContributions.map((contrib) => (
           <div
             key={contrib.id}
             className="absolute p-4 shadow-lg rounded-lg cursor-move hover:shadow-xl transition-shadow"
@@ -421,9 +472,14 @@ const App = () => {
           </div>
         ))}
         
-        {contributions.length === 0 && (
+        {filteredContributions.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-gray-400 text-xl">En attente de contributions...</p>
+            <p className="text-gray-400 text-xl">
+              {filterCategory === 'all' 
+                ? 'En attente de contributions...' 
+                : `Aucune contribution dans la catégorie "${filterCategory}"`
+              }
+            </p>
           </div>
         )}
       </div>
