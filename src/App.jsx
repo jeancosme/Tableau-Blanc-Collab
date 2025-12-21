@@ -68,7 +68,14 @@ const App = () => {
     
     await window.storage.set('current-session', JSON.stringify(session));
     await window.storage.set(`contributions-${newSessionId}`, JSON.stringify([]));
-     || !selectedCategory) return;
+    
+    setSessionId(newSessionId);
+    setContributions([]);
+    setView('board');
+  };
+
+  const addContribution = async () => {
+    if (!participantText.trim() || !selectedCategory) return;
 
     const newContribution = {
       id: Date.now(),
@@ -88,14 +95,7 @@ const App = () => {
     // Mettre à jour l'état local immédiatement
     setContributions(updated);
     setParticipantText('');
-    setSelectedCategory(null
-    
-    // Mettre à jour l'état local immédiatement
-    setContributions(updated);
-    setParticipantText('');
-    
-    // Afficher un message de confirmation
-    alert('✅ Contribution ajoutée ! Elle apparaîtra sur le tableau de l\'administrateur après actualisation.');
+    setSelectedCategory(null);
   };
 
   const refreshBoard = async () => {
