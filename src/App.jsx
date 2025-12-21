@@ -9,6 +9,8 @@ const App = () => {
   const [participantText, setParticipantText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   const categories = [
     { name: 'Un rêve', color: '#87CEEB', emoji: '💭' },
@@ -116,6 +118,42 @@ const App = () => {
       setSessionId('');
       setContributions([]);
       setView('setup');
+    }
+  };
+
+  const handleMouseDown = (e, contrib) => {
+    const rect = e.target.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    setDraggingId(contrib.id);
+    setDragOffset({ x: offsetX, y: offsetY });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!draggingId) return;
+
+    const container = document.querySelector('.contributions-container');
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const x = ((e.clientX - rect.left - dragOffset.x) / rect.width) * 100;
+    const y = ((e.clientY - rect.top - dragOffset.y) / rect.height) * 100;
+
+    // Limiter aux bordures
+    const limitedX = Math.max(0, Math.min(95, x));
+    const limitedY = Math.max(0, Math.min(95, y));
+
+    const updated = contributions.map(c =>
+      c.id === draggingId ? { ...c, x: limitedX, y: limitedY } : c
+    );
+    setContributions(updated);
+  };
+
+  const handleMouseUp = async () => {
+    if (draggingId) {
+      // Sauvegarder la nouvelle position
+      await window.storage.set(`contributions-${sessionId}`, JSON.stringify(contributions));
+      setDraggingId(null);
     }
   };
 
@@ -326,21 +364,31 @@ const App = () => {
         </div>
       ) : null}
 
-      <div className="relative h-[calc(100vh-88px)] overflow-hidden">
+      <div 
+        className="relative h-[calc(100vh-88px)] overflow-hidden contributions-container"
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
         {contributions.map((contrib) => (
           <div
             key={contrib.id}
-            className="absolute p-4 shadow-lg rounded-lg"
+            className="absolute p-4 shadow-lg rounded-lg cursor-move hover:shadow-xl transition-shadow"
             style={{
               backgroundColor: contrib.color,
               left: `${contrib.x}%`,
               top: `${contrib.y}%`,
               transform: `rotate(${contrib.rotation}deg)`,
               minWidth: '150px',
-              maxWidth: '250px'
+              maxWidth: '250px',
+              userSelect: 'none'
             }}
+            onMouseDown={(e) => handleMouseDown(e, contrib)}
           >
-            <p className="text-gray-800 font-medium break-words">{contrib.text}</p>
+            <p className="text-gray-800 font-medium break-words pointer-events-none">{contrib.text}</p>
+            {contrib.category && (
+              <p className="text-xs text-gray-600 mt-2 italic pointer-events-none">{contrib.category}</p>
+            )}
           </div>
         ))}
         
