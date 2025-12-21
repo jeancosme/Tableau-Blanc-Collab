@@ -1,6 +1,6 @@
 # Lien web
 
-https://ton-pseudo.github.io/Tableau-Blanc-Collab
+https://jeancosme.github.io/Tableau-Blanc-Collab
 
 # Tableau Blanc Collaboratif
 
