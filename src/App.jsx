@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Trash2, QrCode, RefreshCw } from 'lucide-react';
+import { Plus, Users, Trash2, QrCode, RefreshCw, Sparkles } from 'lucide-react';
+import { analyzeThemes } from './aiAnalysis.js';
 
 const App = () => {
-  const [view, setView] = useState('setup'); // 'setup', 'board', 'participant'
+  const [view, setView] = useState('setup'); // 'setup', 'board', 'participant', 'ai-analysis'
   const [question, setQuestion] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [contributions, setContributions] = useState([]);
@@ -16,6 +17,8 @@ const App = () => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
   const categories = [
@@ -398,6 +401,26 @@ const App = () => {
                 Mode Présentation
               </button>
               <button
+                onClick={async () => {
+                  setIsAnalyzing(true);
+                  try {
+                    const analysis = await analyzeThemes(contributions);
+                    setAiAnalysis(analysis);
+                    setView('ai-analysis');
+                  } catch (error) {
+                    console.error('Erreur analyse IA:', error);
+                    alert('Erreur lors de l\'analyse IA. Vérifiez la console.');
+                  } finally {
+                    setIsAnalyzing(false);
+                  }
+                }}
+                disabled={isAnalyzing || contributions.length === 0}
+                className="bg-gradient-to-r from-pink-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Sparkles className="w-5 h-5" />
+                {isAnalyzing ? 'Analyse en cours...' : 'Analyser avec IA'}
+              </button>
+              <button
                 onClick={() => setView('qrcode')}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
@@ -477,6 +500,77 @@ const App = () => {
               className="w-full mt-4 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700"
             >
               Fermer
+            </button>
+          </div>
+        </div>
+      ) : view === 'ai-analysis' ? (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-auto" onClick={() => setView('board')}>
+          <div className="bg-white rounded-2xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-pink-600 to-purple-600 text-transparent bg-clip-text">
+              Analyse Thématique par IA
+            </h2>
+            
+            {aiAnalysis && aiAnalysis.length > 0 ? (
+              <div className="space-y-4">
+                <p className="text-center text-gray-600 mb-6">
+                  L'IA a identifié {aiAnalysis.length} thèmes principaux dans les {contributions.length} contributions
+                </p>
+                
+                <div className="grid gap-4">
+                  {aiAnalysis.map((theme, index) => (
+                    <div 
+                      key={index} 
+                      className="border-2 border-purple-200 rounded-xl p-6 hover:border-purple-400 transition-colors bg-gradient-to-r from-purple-50 to-pink-50"
+                    >
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-xl font-bold text-purple-900 capitalize">
+                          {theme.theme}
+                        </h3>
+                        <div className="flex items-center gap-3">
+                          <span className="bg-purple-600 text-white px-4 py-1 rounded-full font-bold">
+                            {theme.count} contribution{theme.count > 1 ? 's' : ''}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            {Math.round(theme.confidence * 100)}% confiance
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {theme.contributions.map((contrib) => {
+                          const category = categories.find(c => c.name === contrib.category);
+                          return (
+                            <div 
+                              key={contrib.id}
+                              className="bg-white rounded-lg p-3 shadow-sm border-l-4"
+                              style={{ borderLeftColor: category?.color || '#gray' }}
+                            >
+                              <div className="flex items-start gap-2">
+                                <span className="text-xl">{category?.emoji || '📝'}</span>
+                                <div>
+                                  <p className="font-medium">{contrib.text}</p>
+                                  <p className="text-sm text-gray-500">{category?.name}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">Aucune analyse disponible</p>
+              </div>
+            )}
+            
+            <button
+              onClick={() => setView('board')}
+              className="w-full mt-6 bg-gradient-to-r from-pink-600 to-purple-600 text-white py-3 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-colors font-bold"
+            >
+              Retour au tableau
             </button>
           </div>
         </div>
