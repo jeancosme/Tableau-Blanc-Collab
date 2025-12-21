@@ -2,10 +2,16 @@
 // Utilise l'API Inference gratuite de Hugging Face
 
 const HUGGING_FACE_API = 'https://api-inference.huggingface.co/models/facebook/bart-large-mnli';
+const API_KEY = import.meta.env.VITE_HUGGINGFACE_API_KEY;
 
 export async function analyzeThemes(contributions) {
   if (!contributions || contributions.length === 0) {
     return { themes: [], error: 'Aucune contribution à analyser' };
+  }
+
+  if (!API_KEY) {
+    console.error('Clé API Hugging Face manquante. Voir HUGGINGFACE_SETUP.md');
+    return { themes: [], error: 'Configuration API manquante. Contactez l\'administrateur.' };
   }
 
   try {
@@ -46,6 +52,7 @@ export async function analyzeThemes(contributions) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
               inputs: contrib.text,
