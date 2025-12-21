@@ -69,9 +69,16 @@ const App = () => {
     };
 
     const updated = [...contributions, newContribution];
+    
+    // Stocker localement
     await window.storage.set(`contributions-${sessionId}`, JSON.stringify(updated), true);
+    
+    // Mettre à jour l'état local immédiatement
     setContributions(updated);
     setParticipantText('');
+    
+    // Afficher un message de confirmation
+    alert('✅ Contribution ajoutée ! Elle apparaîtra sur le tableau de l\'administrateur après actualisation.');
   };
 
   const refreshBoard = async () => {
@@ -98,7 +105,7 @@ const App = () => {
   };
 
   const generateQRCodeUrl = () => {
-    const participantUrl = `${window.location.origin}${window.location.pathname}?mode=participant&session=${sessionId}`;
+    const participantUrl = `${window.location.origin}${window.location.pathname}?mode=participant&session=${sessionId}&q=${encodeURIComponent(question)}`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(participantUrl)}`;
   };
 
@@ -106,7 +113,16 @@ const App = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('mode') === 'participant') {
       const sid = params.get('session');
-      if (sid) {
+      const q = params.get('q');
+      if (sid && q) {
+        setSessionId(sid);
+        setQuestion(decodeURIComponent(q));
+        loadContributions(sid).then(() => {
+          setView('participant');
+          setLoading(false);
+        });
+      } else if (sid) {
+        // Fallback si pas de question dans l'URL
         setSessionId(sid);
         loadContributions(sid).then(() => {
           window.storage.get('current-session').then(result => {
