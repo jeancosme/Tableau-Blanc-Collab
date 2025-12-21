@@ -5,7 +5,7 @@ import './index.css'
 
 // Configuration du système de stockage
 const STORAGE_API = import.meta.env.VITE_STORAGE_API || 'http://localhost:3001/storage';
-const USE_CLOUD_STORAGE = true; // Mettre à false pour utiliser localStorage
+const USE_CLOUD_STORAGE = false; // true = API serveur, false = localStorage
 
 // Système de stockage (cloud ou local)
 if (!window.storage) {
