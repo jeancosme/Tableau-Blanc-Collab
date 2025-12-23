@@ -420,7 +420,7 @@ const App = () => {
                   }
                 }}
                 disabled={isAnalyzing || contributions.length === 0}
-                className="bg-gradient-to-r from-pink-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="hidden bg-gradient-to-r from-pink-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Sparkles className="w-5 h-5" />
                 {isAnalyzing ? 'Analyse en cours...' : 'Analyser avec IA'}
