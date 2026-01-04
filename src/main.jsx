@@ -5,7 +5,7 @@ import './index.css'
 import { firebaseStorage } from './firebase.js'
 
 // Configuration du système de stockage
-const USE_FIREBASE = true; // true = Firebase (sync temps réel), false = localStorage
+const USE_FIREBASE = false; // true = Firebase (sync temps réel), false = localStorage
 
 // Système de stockage (Firebase ou local)
 if (!window.storage) {
