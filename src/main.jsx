@@ -5,8 +5,9 @@ import './index.css'
 import { firebaseStorage } from './firebase.js'
 
 // Configuration du système de stockage
-const USE_FIREBASE = false; // true = Firebase (sync temps réel), false = localStorage ou serveur
-const USE_SERVER = true; // true = Serveur API (stockage cloud), false = localStorage
+// En production (Vercel), USE_FIREBASE sera automatiquement true
+const USE_FIREBASE = import.meta.env.PROD || false; // true en production, false en dev
+const USE_SERVER = !USE_FIREBASE && true; // true = Serveur API (stockage cloud), false = localStorage
 
 // Système de stockage (Firebase, Serveur ou local)
 if (!window.storage) {
