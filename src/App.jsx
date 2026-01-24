@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Trash2, QrCode, RefreshCw, Sparkles } from 'lucide-react';
+import { Plus, Users, Trash2, QrCode, RefreshCw, Sparkles, Settings } from 'lucide-react';
 import { analyzeThemes } from './aiAnalysis.js';
 
 const App = () => {
@@ -20,12 +20,14 @@ const App = () => {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [showSettings, setShowSettings] = useState(false);
+  const [colorPickerOpen, setColorPickerOpen] = useState(null);
 
-  const categories = [
-    { name: 'Un rêve', color: '#87CEEB', emoji: '💭' },
-    { name: 'Un besoin du quotidien', color: '#90EE90', emoji: '🌱' },
-    { name: 'Mes inquiétudes', color: '#FF6B6B', emoji: '⚠️' }
-  ];
+  const [categories, setCategories] = useState([
+    { id: 1, name: 'Un rêve', color: '#87CEEB', emoji: '💭' },
+    { id: 2, name: 'Un besoin du quotidien', color: '#90EE90', emoji: '🌱' },
+    { id: 3, name: 'Mes inquiétudes', color: '#FF6B6B', emoji: '⚠️' }
+  ]);
 
   const colors = ['#FFE5B4', '#FFB6C1', '#B4E7FF', '#D4FFB4', '#FFD4E5', '#E5D4FF', '#FFFACD'];
 
@@ -198,6 +200,31 @@ const App = () => {
 
   const handleZoom = (delta) => {
     setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
+  };
+
+  const addCategory = () => {
+    const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+    const newCategory = {
+      id: Date.now(),
+      name: `Catégorie ${categories.length + 1}`,
+      color: randomColor,
+      emoji: '📌'
+    };
+    setCategories([...categories, newCategory]);
+  };
+
+  const removeCategory = (categoryId) => {
+    if (categories.length <= 1) {
+      alert('Vous devez garder au moins une catégorie');
+      return;
+    }
+    setCategories(categories.filter(c => c.id !== categoryId));
+  };
+
+  const updateCategory = (categoryId, updates) => {
+    setCategories(categories.map(c => 
+      c.id === categoryId ? { ...c, ...updates } : c
+    ));
   };
 
   const handlePanStart = (e) => {
@@ -395,64 +422,39 @@ const App = () => {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setPresentationMode(true)}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                onClick={() => setShowSettings(true)}
+                className="bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center w-12 h-12"
+                title="Paramètres"
               >
-                Mode Présentation
+                <Settings className="w-6 h-6" />
               </button>
-              {/* Bouton IA temporairement masqué
-              <button
-                onClick={async () => {
-                  setIsAnalyzing(true);
-                  try {
-                    const result = await analyzeThemes(contributions);
-                    console.log('Résultat analyse IA:', result);
-                    if (result.error) {
-                      alert(result.error);
-                    } else {
-                      setAiAnalysis(result.themes || []);
-                      setView('ai-analysis');
-                    }
-                  } catch (error) {
-                    console.error('Erreur analyse IA:', error);
-                    alert('Erreur lors de l\'analyse IA. Vérifiez la console.');
-                  } finally {
-                    setIsAnalyzing(false);
-                  }
-                }}
-                disabled={isAnalyzing || contributions.length === 0}
-                className="bg-gradient-to-r from-pink-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Sparkles className="w-5 h-5" />
-                {isAnalyzing ? 'Analyse en cours...' : 'Analyser avec IA'}
-              </button>
-              */}
               <button
                 onClick={() => setView('qrcode')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center w-12 h-12"
+                title="QR Code"
               >
-                <QrCode className="w-5 h-5" />
-                QR Code
+                <QrCode className="w-6 h-6" />
               </button>
               <button
                 onClick={refreshBoard}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center w-12 h-12"
+                title="Actualiser"
               >
-                <RefreshCw className="w-5 h-5" />
-                Actualiser
+                <RefreshCw className="w-6 h-6" />
               </button>
               <button
                 onClick={clearBoard}
-                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+                className="bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center w-12 h-12"
+                title="Effacer"
               >
-                <Trash2 className="w-5 h-5" />
-                Effacer
+                <Trash2 className="w-6 h-6" />
               </button>
               <button
                 onClick={resetSession}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                className="bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center w-12 h-12"
+                title="Nouvelle session"
               >
-                Nouvelle session
+                <Plus className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -474,15 +476,13 @@ const App = () => {
               <button
                 key={category.name}
                 onClick={() => setFilterCategory(category.name)}
-                className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 text-white font-semibold ${
                   filterCategory === category.name
-                    ? 'shadow-md text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'shadow-lg ring-4 ring-black ring-opacity-30'
+                    : 'shadow-md hover:shadow-lg'
                 }`}
                 style={{
-                  backgroundColor: filterCategory === category.name ? category.color : undefined,
-                  borderWidth: filterCategory === category.name ? '2px' : '0',
-                  borderColor: filterCategory === category.name ? 'rgba(0,0,0,0.2)' : undefined
+                  backgroundColor: category.color
                 }}
               >
                 <span>{category.emoji}</span>
@@ -582,6 +582,66 @@ const App = () => {
           </div>
         </div>
       ) : null}
+
+      {/* Modal Settings */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowSettings(false)}>
+          <div className="bg-white rounded-2xl p-8 max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold text-center mb-6">Paramètres des catégories</h2>
+            
+            <div className="space-y-3">
+              {categories.map((category) => (
+                <div key={category.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    value={category.emoji}
+                    onChange={(e) => updateCategory(category.id, { emoji: e.target.value })}
+                    className="w-12 text-center text-xl border-2 border-gray-300 rounded-lg"
+                    maxLength={2}
+                  />
+                  <input
+                    type="text"
+                    value={category.name}
+                    onChange={(e) => updateCategory(category.id, { name: e.target.value })}
+                    className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
+                  />
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={category.color}
+                      onChange={(e) => updateCategory(category.id, { color: e.target.value })}
+                      className="w-12 h-12 cursor-pointer border-2 border-gray-300 rounded-lg"
+                      title="Choisir une couleur"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeCategory(category.id)}
+                    className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 font-bold"
+                    title="Supprimer cette catégorie"
+                  >
+                    −
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={addCategory}
+              className="w-full mt-4 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-bold flex items-center justify-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Ajouter une catégorie
+            </button>
+            
+            <button
+              onClick={() => setShowSettings(false)}
+              className="w-full mt-3 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Contrôles Zoom/Pan */}
       <div className="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-3 flex gap-2 z-40">
