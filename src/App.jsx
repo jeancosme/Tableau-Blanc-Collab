@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Trash2, QrCode, RefreshCw, Sparkles, Settings } from 'lucide-react';
+import { Plus, Users, Trash2, QrCode, RefreshCw, Sparkles, Settings, Brain, X } from 'lucide-react';
 import { analyzeThemes } from './aiAnalysis.js';
 
 const App = () => {
@@ -22,6 +22,9 @@ const App = () => {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [showSettings, setShowSettings] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(null);
+  const [aiCategories, setAiCategories] = useState(null); // Résultat de la catégorisation IA
+  const [isCategorizing, setIsCategorizing] = useState(false);
+  const [categorizationError, setCategorizationError] = useState(null);
 
   const [categories, setCategories] = useState([
     { id: 1, name: 'Un rêve', color: '#87CEEB', emoji: '💭' },
@@ -227,6 +230,62 @@ const App = () => {
     ));
   };
 
+  // Catégorisation IA
+  const categorizeWithAI = async () => {
+    if (contributions.length < 3) {
+      alert('Au moins 3 contributions sont nécessaires pour la catégorisation IA');
+      return;
+    }
+
+    setIsCategorizing(true);
+    setCategorizationError(null);
+
+    try {
+      // Extraire uniquement les textes des contributions
+      const words = contributions.map(c => c.text);
+
+      // Appeler l'API Vercel
+      const response = await fetch('/api/categorize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sessionId: sessionId,
+          words: words,
+          context: question
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors de la catégorisation');
+      }
+
+      const result = await response.json();
+
+      // Valider la structure du résultat
+      if (!result.categories || !Array.isArray(result.categories)) {
+        throw new Error('Format de réponse invalide');
+      }
+
+      setAiCategories(result);
+      console.log('Catégorisation réussie:', result);
+
+    } catch (error) {
+      console.error('Erreur de catégorisation:', error);
+      setCategorizationError(error.message);
+      alert(`Erreur de catégorisation: ${error.message}`);
+    } finally {
+      setIsCategorizing(false);
+    }
+  };
+
+  const resetCategorization = () => {
+    setAiCategories(null);
+    setCategorizationError(null);
+  };
+
   const handlePanStart = (e) => {
     if (e.button === 1 || (e.button === 0 && e.ctrlKey)) { // Molette ou Ctrl+Clic
       e.preventDefault();
@@ -429,6 +488,22 @@ const App = () => {
                 <Settings className="w-6 h-6" />
               </button>
               <button
+                onClick={categorizeWithAI}
+                disabled={isCategorizing || contributions.length < 3}
+                className={`${
+                  isCategorizing || contributions.length < 3
+                    ? 'bg-purple-400 cursor-not-allowed'
+                    : 'bg-purple-600 hover:bg-purple-700'
+                } text-white rounded-lg transition-colors flex items-center justify-center w-12 h-12`}
+                title="Catégoriser avec IA"
+              >
+                {isCategorizing ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                ) : (
+                  <Brain className="w-6 h-6" />
+                )}
+              </button>
+              <button
                 onClick={() => setView('qrcode')}
                 className="bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center w-12 h-12"
                 title="QR Code"
@@ -586,19 +661,37 @@ const App = () => {
       {/* Modal Settings */}
       {showSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowSettings(false)}>
-          <div className="bg-white rounded-2xl p-8 max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-2xl font-bold text-center mb-6">Paramètres des catégories</h2>
             
             <div className="space-y-3">
               {categories.map((category) => (
                 <div key={category.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <input
-                    type="text"
-                    value={category.emoji}
-                    onChange={(e) => updateCategory(category.id, { emoji: e.target.value })}
-                    className="w-12 text-center text-xl border-2 border-gray-300 rounded-lg"
-                    maxLength={2}
-                  />
+                  <div className="relative">
+                    <button
+                      onClick={() => setColorPickerOpen(colorPickerOpen === category.id ? null : category.id)}
+                      className="w-12 h-12 text-2xl border-2 border-gray-300 rounded-lg hover:border-indigo-500 flex items-center justify-center"
+                      title="Choisir un emoji"
+                    >
+                      {category.emoji}
+                    </button>
+                    {colorPickerOpen === category.id && (
+                      <div className="absolute top-14 left-0 bg-white border-2 border-gray-300 rounded-lg p-2 shadow-xl z-50 grid grid-cols-6 gap-1">
+                        {['💭', '🌱', '⚠️', '💡', '🎯', '🚀', '⭐', '❤️', '🔥', '📌', '✨', '🎨', '🏆', '💪', '👍', '📝', '🎓', '💰', '🏠', '🌍', '⚡', '🎵', '📱', '💻', '🔧', '⚙️', '🎁', '🌈'].map(emoji => (
+                          <button
+                            key={emoji}
+                            onClick={() => {
+                              updateCategory(category.id, { emoji });
+                              setColorPickerOpen(null);
+                            }}
+                            className="text-2xl hover:bg-gray-100 rounded p-1"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={category.name}
@@ -639,6 +732,90 @@ const App = () => {
             >
               Fermer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Vue Catégorisation IA */}
+      {aiCategories && (
+        <div className="fixed inset-0 bg-white z-50 overflow-auto">
+          <div className="max-w-7xl mx-auto p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-800">Catégorisation IA</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {aiCategories.categories.length} catégories générées • {aiCategories.meta.original_count} contributions • Traité en {aiCategories.meta.processing_time_ms}ms
+                </p>
+              </div>
+              <button
+                onClick={resetCategorization}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <X className="w-5 h-5" />
+                Fermer et réinitialiser
+              </button>
+            </div>
+
+            {/* Grille de catégories */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {aiCategories.categories.map((category) => {
+                const colorMap = {
+                  green: 'bg-green-100 border-green-500',
+                  red: 'bg-red-100 border-red-500',
+                  blue: 'bg-blue-100 border-blue-500',
+                  purple: 'bg-purple-100 border-purple-500',
+                  orange: 'bg-orange-100 border-orange-500',
+                  gray: 'bg-gray-100 border-gray-500'
+                };
+                const colorClass = colorMap[category.color] || colorMap.gray;
+
+                return (
+                  <div key={category.id} className={`${colorClass} border-l-4 rounded-lg p-4 shadow-md`}>
+                    <h3 className="text-xl font-bold text-gray-800 mb-3">{category.title}</h3>
+                    <div className="text-sm text-gray-600 mb-2">
+                      {category.items.length} contribution{category.items.length > 1 ? 's' : ''}
+                    </div>
+                    <div className="space-y-2">
+                      {category.items.map((item, idx) => (
+                        <div
+                          key={`${category.id}-${idx}`}
+                          className="bg-white p-3 rounded shadow-sm text-gray-700 text-sm"
+                        >
+                          {item.text}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Éléments non assignés (si présents) */}
+            {aiCategories.unassigned && aiCategories.unassigned.length > 0 && (
+              <div className="mt-8 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-4">
+                <h3 className="text-xl font-bold text-gray-800 mb-3">Non classés</h3>
+                <div className="space-y-2">
+                  {aiCategories.unassigned.map((item, idx) => (
+                    <div
+                      key={`unassigned-${idx}`}
+                      className="bg-white p-3 rounded shadow-sm text-gray-700 text-sm"
+                    >
+                      {item.text}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Métadonnées */}
+            <div className="mt-8 bg-gray-50 rounded-lg p-4 text-xs text-gray-600">
+              <strong>Détails techniques:</strong>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Modèle d'embeddings: {aiCategories.meta.embedding_model}</li>
+                <li>Nombre de clusters (k): {aiCategories.meta.k}</li>
+                <li>Mots uniques: {aiCategories.meta.unique_count} / {aiCategories.meta.original_count}</li>
+              </ul>
+            </div>
           </div>
         </div>
       )}

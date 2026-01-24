@@ -6,81 +6,167 @@ https://jeancosme.github.io/Tableau-Blanc-Collab
 
 Application web collaborative permettant de créer des sessions de brainstorming avec des post-its virtuels.
 
-## Fonctionnalités
+## ✨ Fonctionnalités
 
+### Collaboration en temps réel
 - Créer une session avec une question
 - Générer un QR code pour les participants
 - Les participants ajoutent des contributions (post-its)
-- Affichage en temps réel sur le tableau
+- Affichage en temps réel sur le tableau avec Firebase
 - Rafraîchir, effacer ou recommencer une session
-- **🆕 Stockage dans un dossier cloud** (OneDrive, Dropbox, Google Drive, etc.)
 
-## Installation
+### 🧠 Catégorisation IA (NOUVEAU !)
+- **Regroupement automatique** des contributions par thème
+- **Naming intelligent** via l'API Albert (IA de l'État français)
+- **Embeddings sémantiques** avec k-means clustering
+- Visualisation en colonnes par catégorie
+- Minimum 3 contributions requises
+
+### 🎨 Interface moderne
+- Paramètres des catégories personnalisables
+- Sélection d'emojis par catégorie
+- Filtrage par catégorie
+- Zoom et pan sur le tableau
+- Design responsive Tailwind CSS
+
+## 🚀 Installation
 
 ```bash
 npm install
 ```
 
-## Configuration du stockage cloud
+## 🔑 Configuration
 
-### Méthode 1 : Fichier .env (Recommandé)
+### Firebase (Stockage temps réel)
 
-1. Copiez le fichier `.env.example` en `.env`
-2. Modifiez le chemin du dossier de stockage dans `.env`:
+Les variables Firebase sont déjà configurées dans le code. Pour GitHub Pages ou Vercel, ajoutez les variables d'environnement :
 
-```env
-STORAGE_PATH=C:\Users\Utilisateur\OneDrive\TableauBlancData
+```
+VITE_FIREBASE_API_KEY=AIzaSyB5D8Y8Kq3EtzGjcOML8ysY9fYwEWiRswk
+VITE_FIREBASE_AUTH_DOMAIN=tableau-blanc-57b97.firebaseapp.com
+VITE_FIREBASE_DATABASE_URL=https://tableau-blanc-57b97-default-rtdb.europe-west1.firebasedatabase.app
+VITE_FIREBASE_PROJECT_ID=tableau-blanc-57b97
+VITE_FIREBASE_STORAGE_BUCKET=tableau-blanc-57b97.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=1083056544550
+VITE_FIREBASE_APP_ID=1:1083056544550:web:833e6db49d6982872bbfe7
 ```
 
-### Méthode 2 : Variable d'environnement
+Voir [VERCEL_ENV_SETUP.md](VERCEL_ENV_SETUP.md) pour plus de détails.
 
-```powershell
-# PowerShell
-$env:STORAGE_PATH="C:\Users\Utilisateur\OneDrive\TableauBlancData"
-npm start
-```
+### API Albert (Catégorisation IA)
+
+1. Obtenez une clé API sur [https://albert.api.etalab.gouv.fr](https://albert.api.etalab.gouv.fr)
+2. Ajoutez la variable d'environnement :
+   - **Vercel** : Settings → Environment Variables → `ALBERT_API_KEY`
+   - **Local** : Créez `.env.local` avec `ALBERT_API_KEY=votre_clé`
+
+Voir [docs/ALBERT_SETUP.md](docs/ALBERT_SETUP.md) pour le guide complet.
+
+## 💻 Utilisation
+
+### Démarrer l'application en local (avec fonctions serverless)
 
 ```bash
-# Linux/Mac
-STORAGE_PATH="/path/to/cloud/folder" npm start
-```
+# Option 1 : Avec Vercel Dev (recommandé pour tester les fonctions IA)
+vercel dev
 
-## Utilisation
-
-### Démarrer l'application (tout en un)
-
-```bash
-npm start
-```
-
-Cette commande démarre automatiquement :
-- Le serveur de stockage (port 3001)
-- L'interface web (port 5173)
-
-### Démarrer séparément
-
-```bash
-# Terminal 1 - Serveur de stockage
-npm run server
-
-# Terminal 2 - Interface web
+# Option 2 : Seulement le frontend (sans catégorisation IA)
 npm run dev
 ```
 
-## Choix du mode de stockage
+### Test de l'endpoint IA
 
-Dans `src/main.jsx`, ligne 3 :
-
-```javascript
-const USE_CLOUD_STORAGE = true;  // true = dossier cloud, false = localStorage
+```bash
+curl -X POST http://localhost:3000/api/categorize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "test-1",
+    "words": ["innovation", "créativité", "iPad", "tablette", "motivation"],
+    "context": "Brainstorming pédagogique"
+  }'
 ```
 
-## Dossiers cloud supportés
+## 📁 Architecture du projet
 
-- **OneDrive**: `C:\Users\Utilisateur\OneDrive\TableauBlancData`
-- **Dropbox**: `C:\Users\Utilisateur\Dropbox\TableauBlancData`
-- **Google Drive**: `C:\Users\Utilisateur\Google Drive\TableauBlancData`
-- **Dossier personnalisé**: N'importe quel dossier de votre choix
+```
+/api
+  └── categorize.js          # Endpoint serverless (catégorisation IA)
+
+/lib
+  ├── albert.js              # Wrapper API Albert
+  └── clustering.js          # K-means clustering
+
+/src
+  ├── App.jsx                # Application principale
+  ├── firebase.js            # Configuration Firebase
+  └── main.jsx               # Point d'entrée
+
+/docs
+  ├── ALBERT_SETUP.md        # Guide API Albert
+  ├── FIREBASE_SETUP.md      # Guide Firebase
+  └── VERCEL_DEPLOY.md       # Guide déploiement
+```
+
+## 🚢 Déploiement
+
+### GitHub Pages (Frontend uniquement)
+
+```bash
+git add .
+git commit -m "Update"
+git push
+```
+
+Le déploiement se fait automatiquement via GitHub Actions.
+
+### Vercel (Frontend + Serverless)
+
+1. Connectez votre repo GitHub à Vercel
+2. Ajoutez les variables d'environnement (Firebase + Albert)
+3. Déployez automatiquement à chaque push
+
+## 🔒 Sécurité
+
+- ✅ Clé API Albert jamais exposée côté client
+- ✅ Variables d'environnement pour les secrets
+- ✅ `.env.local` dans `.gitignore`
+- ✅ Validation stricte des entrées API
+- ✅ Timeout sur les requêtes externes
+- ✅ CORS configuré
+
+## 📚 Documentation
+
+- [Configuration Firebase](VERCEL_ENV_SETUP.md)
+- [Configuration Albert IA](docs/ALBERT_SETUP.md)
+- [Déploiement Vercel](VERCEL_DEPLOY.md)
+
+## 🛠️ Technologies
+
+- **Frontend**: React 18 + Vite 5 + Tailwind CSS
+- **Icons**: Lucide React
+- **Base de données**: Firebase Realtime Database
+- **IA**: API Albert (embeddings + LLM)
+- **Serverless**: Vercel Functions
+- **Déploiement**: GitHub Pages / Vercel
+
+## 🤝 Contribution
+
+Branches:
+- `main` : Production stable (GitHub Pages)
+- `dev` : Développement et tests
+
+Pour contribuer :
+```bash
+git checkout dev
+# Faites vos modifications
+git add .
+git commit -m "Description"
+git push origin dev
+```
+
+## 📝 License
+
+MIT
 
 Les données seront automatiquement synchronisées entre tous vos appareils via votre service cloud !
 
