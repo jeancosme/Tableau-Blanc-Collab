@@ -179,8 +179,13 @@ const App = () => {
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
-    const x = ((e.clientX - rect.left - dragOffset.x) / rect.width) * 100;
-    const y = ((e.clientY - rect.top - dragOffset.y) / rect.height) * 100;
+    
+    // Prendre en compte le zoom et le pan
+    const adjustedX = (e.clientX - rect.left - pan.x) / zoom;
+    const adjustedY = (e.clientY - rect.top - pan.y) / zoom;
+    
+    const x = ((adjustedX - dragOffset.x) / rect.width) * 100 * zoom;
+    const y = ((adjustedY - dragOffset.y) / rect.height) * 100 * zoom;
 
     // Limiter aux bordures
     const limitedX = Math.max(0, Math.min(95, x));
@@ -874,7 +879,9 @@ const App = () => {
           {filteredContributions.map((contrib) => (
             <div
               key={contrib.id}
-              className="absolute p-4 shadow-lg rounded-lg cursor-move hover:shadow-xl transition-all duration-300 animate-fadeIn"
+              className={`absolute p-4 shadow-lg rounded-lg cursor-move hover:shadow-xl animate-fadeIn ${
+                draggingId === contrib.id ? '' : 'transition-all duration-300'
+              }`}
               style={{
                 backgroundColor: contrib.color,
                 left: `${contrib.x}%`,
@@ -883,7 +890,8 @@ const App = () => {
                 minWidth: '150px',
                 maxWidth: '250px',
                 userSelect: 'none',
-                animation: 'fadeIn 0.5s ease-out'
+                animation: 'fadeIn 0.5s ease-out',
+                transition: draggingId === contrib.id ? 'none' : undefined
               }}
               onMouseDown={(e) => {
                 if (!e.ctrlKey && e.button === 0) {
